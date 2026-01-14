@@ -1,0 +1,26 @@
+{
+  "name": "ipdb",
+  "version": "1.0.0",
+  "description": "",
+  "main": "app.js",
+  "type": "module",
+  "scripts": {
+    "compile": "tsc && node dist/app.js",
+    "load": "tsc && node dist/load.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "express": "^5.1.0",
+    "ip-bigint": "^8.2.1",
+    "ipaddr.js": "^2.2.0",
+    "mongodb": "^6.18.0",
+    "stream-json": "^1.9.1"
+  },
+  "devDependencies": {
+    "@types/express": "^5.0.6",
+    "@types/mongodb": "^4.0.6",
+    "typescript": "^5.9.3"
+  }
+}
