@@ -15,8 +15,13 @@
     "noEmit": false,
     "declaration": true,
     "emitDeclarationOnly": false,
-    "outDir": "./dist"
+    "outDir": "./dist",
+    "baseUrl": "./",
+    "rootDir": "./",
+    "paths": {
+      "*": ["./node_modules/*", "./*"]
+    },
   },
-  "include": ["./"],
+  "include": ["./**/*.ts"],
   "exclude": ["node_modules", "dist"]
 }

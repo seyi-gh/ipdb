@@ -1,15 +1,19 @@
+import ipaddr from 'ipaddr.js'; // FIX: Changed to * as ipaddr
+import { MongoClient } from 'mongodb';
 import express, { Request, Response } from 'express';
-import { MongoClient, Collection } from 'mongodb';
-import { createRequire } from 'module';
-
-const require = createRequire(import.meta.url);
-const ipaddr = require('ipaddr.js');
 
 const app = express();
-const port = 3000;
-const uri = 'mongodb://127.0.0.1:27017';
-const client = new MongoClient(uri);
+const MONGO_URI = 'mongodb://127.0.0.1:27017';
+const client = new MongoClient(MONGO_URI);
 
+try {
+  await client.connect();
+} catch {
+  console.error('> Couldnt connect to the database <');
+  process.exit(1);
+}
+
+//? Simple interface and creation of types
 interface IPRecord {
   start_ip: string;
   end_ip: string;
@@ -20,69 +24,51 @@ interface IPRecord {
   continent_name: string;
   ip_version: number;
 }
+let collection = client.db('ipdb').collection<IPRecord>('ips');
 
-let collection: Collection<IPRecord>;
-
-/**
- * Convierte IP a String BigInt exacto para búsqueda por rango
- */
+//! Helper function
+//? Convert the string to a readable IP
 function getIpBigIntString(ip: string): string {
-  const addr = ipaddr.parse(ip);
+  let addr = ipaddr.parse(ip);
+
+  if (addr.kind() === 'ipv4') {
+    addr = (addr as ipaddr.IPv4).toIPv4MappedAddress();
+  }
+
   const parts: number[] = addr.toByteArray();
   let res: bigint = 0n;
-  for (const part of parts) {
+  for (const part of parts)
     res = (res << 8n) + BigInt(part);
-  }
-  return res.toString();
+
+  return res.toString().padStart(39, '0');
 }
-
-async function start() {
-  try {
-    await client.connect();
-    collection = client.db('ipdb').collection<IPRecord>('ips');
-    console.log('📦 Servidor conectado a la base de datos verificada');
-
-    app.listen(port, () => {
-      console.log(`🚀 API ipdb corriendo en http://localhost:${port}`);
-    });
-  } catch (err) {
-    console.error('Error inicializando servidor:', err);
-  }
-}
-
-
 
 app.get('/locate/:ip', async (req: Request, res: Response): Promise<void> => {
   try {
-    const { ip } = req.params;
+    const ip = Array.isArray(req.params.ip) ? req.params.ip[0] : req.params.ip;
 
-    // Type guard para asegurar que es string
-    if (typeof ip !== 'string') {
-      res.status(400).json({ error: 'Formato de parámetro inválido' });
+    if (!ipaddr.isValid(ip)) {
+      res.status(400).json({ error: 'Invalid IP format' });
       return;
     }
 
     const ipIntString = getIpBigIntString(ip);
 
-    // Búsqueda por rango usando los Strings numéricos
+    //? Search the ip for generic range
     const result = await collection.findOne({
       start_ip_int: { $lte: ipIntString },
       end_ip_int: { $gte: ipIntString }
-    }, { 
-      sort: { start_ip_int: -1 }, // Optimización para el índice
-      projection: { _id: 0 } 
+    }, {
+      sort: { start_ip_int: -1 }, //! Important for quick response
+      projection: { _id: 0 }
     });
 
-    if (!result) {
-      res.status(404).json({ ip, message: 'IP no encontrada en los rangos actuales' });
-      return;
-    }
+    if (!result) throw Error('Auto response catcher');
 
     res.json(result);
-
   } catch (error) {
-    res.status(400).json({ error: 'IP inválida o malformada' });
+    res.status(404).json({ error: 'IP not found' });
   }
 });
 
-start();
+export default app;

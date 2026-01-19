@@ -6,7 +6,8 @@
   "type": "module",
   "scripts": {
     "compile": "tsc && node dist/app.js",
-    "load": "tsc && node dist/load.js"
+    "load": "tsc && node dist/load.js",
+    "start": "rm -R dist && tsc && node dist/server.js"
   },
   "keywords": [],
   "author": "",
