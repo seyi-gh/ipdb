@@ -1,6 +1,2 @@
-node_modules
-package-lock.json
-dist
-dist/*
-
+venv
 ipsv1.json
